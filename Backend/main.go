@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gin-contrib/cors"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -184,6 +184,7 @@ func getTopProduct(c *gin.Context) {
 
 	c.JSON(http.StatusOK, results)
 }
+
 func main() {
 	var err error
 	const maxRetries = 10
@@ -204,7 +205,14 @@ func main() {
 
 	// Router
 	route := gin.Default()
-	route.Use(cors.Default())
+	route.Use(cors.New(cors.Config{
+        AllowOrigins:     []string{"http://localhost:5173"}, // React dev server
+        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+        AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+        ExposeHeaders:    []string{"Content-Length"},
+        AllowCredentials: true,
+        MaxAge: 12 * time.Hour,
+    }))
 	
 	route.GET("/", getSalesAll)
 	route.GET("/filterYear", getFilterYearSales)

@@ -179,9 +179,6 @@ const BarChart: React.FC = () => {
 
     return (
         <div className="bg-gray-100 rounded-lg shadow-xl p-3 sm:p-6 md:p-8 w-full">
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold uppercase text-center mb-2 sm:mb-4">
-                Top 10 Product
-            </h1>
             <div className="h-64 sm:h-80 md:h-96 lg:h-[440px]">
                 <Bar 
                     data={chartData} 

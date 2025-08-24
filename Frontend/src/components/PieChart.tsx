@@ -98,25 +98,47 @@ const PieChart = () => {
     }
     
     return (
-        <div className="bg-gray-100 rounded-lg shadow-xl p-3 sm:p-6 md:p-8 w-full flex items-center justify-center">
-            <div className="w-32 sm:w-48 md:w-58">
-                <Pie 
-                    data={chartData} 
-                    options={{
-                        plugin: {
-                            legend: {
+        <>
+            <div className="flex flex-col md:flex-row bg-gray-100 rounded-lg shadow-xl p-3 sm:p-6 md:p-8 w-full gap-4">
+                {/* Pie Chart */}
+                <div className="w-full md:w-2/3 flex justify-center">
+                    <div className="w-full max-w-[500px] h-64 sm:h-80 md:h-96 lg:h-[440px]">
+                        <Pie
+                            data={chartData}
+                            options={{
+                            plugins: {
+                                legend: { display: false },
+                                title: {
                                 display: true,
-                                position: 'right',
-                                labels: {
-                                    boxWidth: 20,
-                                    padding: 15
-                                }
-                            }
-                        }
-                    }}
-                />
+                                text: "Count Ship Mode",
+                                font: { size: 20, weight: "bold" },
+                                padding: { top: 10, bottom: 20 },
+                                },
+                            },
+                            maintainAspectRatio: false,
+                            responsive: true,
+                            }}
+                        />
+                    </div>
+                </div>
+
+                {/* Custom Legend */}
+                <div className="w-full md:w-1/3 flex flex-wrap md:flex-col justify-center gap-3">
+                    {chartData.labels.map((label: any, idx: number) => (
+                    <div key={idx} className="flex items-center gap-2 flex-1 min-w-[120px]">
+                        <div 
+                            className="w-6 h-6 rounded" 
+                            style={{ backgroundColor: chartData.datasets[0].backgroundColor[idx] }}
+                        />
+                        <span className="text-gray-700 font-medium">
+                            {label}: {chartData.datasets[0].data[idx]}
+                        </span>
+                    </div>
+                    ))}
+                </div>
             </div>
-        </div>
+        </>
+
     )
 }
 

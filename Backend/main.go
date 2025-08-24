@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -15,22 +15,11 @@ import (
 var db *sqlx.DB
 
 type Sale struct {
-	Row_ID        int       `json:"Row_ID" db:"row_id"`
 	Order_ID      string    `json:"Order_ID" db:"order_id"`
 	Order_Date    time.Time `json:"Order_Date" db:"order_date"`
-	Ship_Date     time.Time `json:"Ship_Date" db:"ship_date"`
-	Ship_Mode     *string   `json:"Ship_Mode" db:"ship_mode"`
-	Customer_ID   *string   `json:"Customer_ID" db:"customer_id"`
 	Customer_Name *string   `json:"Customer_Name" db:"customer_name"`
 	Segment       *string   `json:"Segment" db:"segment"`
-	Country       *string   `json:"Country" db:"country"`
 	City          *string   `json:"City" db:"city"`
-	State         *string   `json:"State" db:"state"`
-	Postal_Code   *string   `json:"Postal_Code" db:"postal_code"`
-	Region        *string   `json:"Region" db:"region"`
-	Product_ID    *string   `json:"Product_ID" db:"product_id"`
-	Category      *string   `json:"Category" db:"category"`
-	Sub_Category  *string   `json:"Sub_Category" db:"sub_category"`
 	Product_Name  *string   `json:"Product_Name" db:"product_name"`
 	Sales         *float64  `json:"Sales" db:"sales"`
 }
@@ -45,23 +34,39 @@ type ShipModeStats struct {
 }
 
 type ProductAndSales struct {
-	ProductName string `db:"product_name"`
-	CountProduct int `db:"count_product"`
-	TotalSales *float64 `db:"total_sales"`
+	ProductName  string   `db:"product_name"`
+	CountProduct int      `db:"count_product"`
+	TotalSales   *float64 `db:"total_sales"`
 }
 
 type TotalProduct struct {
-	ProductName string `db:"product_name"`
-	CountProduct int `db:"count_product"`
+	ProductName  string `db:"product_name"`
+	CountProduct int    `db:"count_product"`
 }
 
+type SaleMonth struct {
+	OrderYear  int      `db:"order_year" json:"order_year"`
+	OrderMonth int      `db:"order_month" json:"order_month"`
+	Sales      *float64 `db:"sales" json:"sales"`
+}
+type CountOrder struct {
+	OrderID int `db:"order_id" json:"order_id"`
+}
 
+type CountShipment struct {
+	Ship_Mode int `db:"ship_mode" json:"ship_mode"`
+}
+
+type SumSales struct {
+	Sales    float64 `db:"sales" json:"sales"`
+	AvgSales float64 `db:"avg_sales" json:"avg_sales"`
+}
 
 // ดึงข้อมูลทั้งหมดจากตาราง sales
 func getSalesAll(c *gin.Context) {
 	var sales []Sale
 
-	err := db.Select(&sales, "SELECT * FROM sales")
+	err := db.Select(&sales, "SELECT order_id, order_date, customer_name, segment, city, product_name, sales FROM sales")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Error": err.Error()})
 		return
@@ -97,9 +102,9 @@ func getFilterYearSales(c *gin.Context) {
 
 func getShipMode(c *gin.Context) {
 
-    var results []ShipModeStats
+	var results []ShipModeStats
 
-    query := `
+	query := `
         SELECT 
             ship_mode,
 			count(ship_mode) as ship_count
@@ -107,13 +112,13 @@ func getShipMode(c *gin.Context) {
         GROUP BY ship_mode
     `
 
-    err := db.Select(&results, query)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"Error": err.Error()})
-        return
-    }
+	err := db.Select(&results, query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"Error": err.Error()})
+		return
+	}
 
-    c.JSON(http.StatusOK, results)
+	c.JSON(http.StatusOK, results)
 }
 
 func getProductAndSaleSum(c *gin.Context) {
@@ -155,7 +160,7 @@ func getTotalProduct_Sale(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Error": err.Error()})
-		return 
+		return
 	}
 
 	c.JSON(http.StatusOK, results)
@@ -185,6 +190,78 @@ func getTopProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, results)
 }
 
+func getSaleMounth(c *gin.Context) {
+
+	var sales []SaleMonth
+	query := `
+	select
+		extract(YEAR from order_date)::int as order_year,
+		extract(MONTH from order_date)::int as order_month,
+		SUM(sales)::float8 as sales
+	from sales
+	group by order_year, order_month
+	order by order_year, order_month
+	`
+	_, err := db.Queryx(query)
+
+	if err != nil {
+		c.JSON(500, gin.H{"Error": err.Error()})
+		return
+	}
+
+	err = db.Select(&sales, query)
+
+	if err != nil {
+		c.JSON(500, gin.H{"Error": err.Error()})
+		return
+	}
+
+	c.JSON(200, sales)
+}
+
+func countOrders(c *gin.Context) {
+	{
+
+		var count CountOrder
+
+		query := `
+		select
+			count(order_id) as order_id
+		from sales
+	`
+
+		err := db.Get(&count, query)
+
+		if err != nil {
+			c.JSON(500, gin.H{"Error": err.Error()})
+			return
+		}
+
+		c.JSON(200, count)
+	}
+}
+
+func sumSales(c *gin.Context) {
+
+	var sale SumSales
+
+	query := `
+		select
+			sum(sales) as sales,
+			avg(sales) as avg_sales
+		from sales
+	`
+
+	err := db.Get(&sale, query)
+
+	if err != nil {
+		c.JSON(500, gin.H{"Error": err.Error()})
+		return
+	}
+
+	c.JSON(200, sale)
+}
+
 func main() {
 	var err error
 	const maxRetries = 10
@@ -206,22 +283,23 @@ func main() {
 	// Router
 	route := gin.Default()
 	route.Use(cors.New(cors.Config{
-        AllowOrigins:     []string{"http://localhost:5173"}, // React dev server
-        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-        AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-        ExposeHeaders:    []string{"Content-Length"},
-        AllowCredentials: true,
-        MaxAge: 12 * time.Hour,
-    }))
-	
-	route.GET("/", getSalesAll)
+		AllowOrigins:     []string{"http://localhost:5173"}, // React dev server
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
+	route.GET("/products", getSalesAll)
+	route.GET("/countOrder", countOrders)
+	route.GET("/sumSale", sumSales)
 	route.GET("/filterYear", getFilterYearSales)
 	route.GET("/ship-mode", getShipMode)
 	route.GET("/productsale", getProductAndSaleSum)
 	route.GET("/totalproduct", getTotalProduct_Sale)
 	route.GET("/topProduct", getTopProduct)
-
-
+	route.GET("/getSalesMonth", getSaleMounth)
 
 	log.Println("Starting backend server...")
 	if err := route.Run(":8080"); err != nil {

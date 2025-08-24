@@ -2,6 +2,7 @@ import React from "react"
 import Sidebar from "./components/Sidebar"
 import { Route, Routes } from "react-router-dom"
 import Overview from "./pages/Overview"
+import Product from "./pages/Product"
 
 function App() {
   
@@ -19,6 +20,12 @@ function App() {
           `}>
           <Routes>
             <Route path="/" element={<Overview/>}/>
+            <Route path="/products" element={<Product/>}/>
+            <Route path="/categories" element={<Product/>}/>
+            <Route path="/sales" element={<Product/>}/>
+            <Route path="/orders" element={<Product/>}/>
+            <Route path="/reports" element={<Product/>}/>
+            <Route path="/settings" element={<Product/>}/>
           </Routes>
         </div>
       </div>
